@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+
+        .array-element {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #333;
+            border-radius: 5px;
+            font-size: 20px;
+            position: relative;
+        }
+
+        .target-val {
+            background-color: #FFB6C1;
+            /* Light red for elements equal to val */
+        }
+
+        .keep-val {
+            background-color: #90EE90;
+            /* Light green for elements not equal to val */
+        }
+
+        .inactive {
+            background-color: #f0f0f0;
+            /* Gray for elements beyond j */
+            border-color: #999;
+            color: #999;
+        }
+
+        .current {
+            border-color: #FF4500;
+            border-width: 3px;
+        }
+
+        .j-pointer {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: blue;
+            font-weight: bold;
+        }
+
+        .i-pointer {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: red;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .explanation {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .stats {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Remove Element Visualization</h1>
+        <div class="stats">
+            <p>Target Value (val) = 2</p>
+            <p>Current Length (j) = <span id="currentLength">0</span></p>
+        </div>
+        <div class="array-container" id="arrayContainer"></div>
+        <div class="controls">
+            <button id="prevBtn" disabled>Previous</button>
+            <button id="nextBtn">Next</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        <div class="explanation" id="explanation"></div>
+    </div>
+
+    <script>
+        const initialArray = [0, 1, 2, 2, 3, 0, 4, 2, 5, 3, 4];
+        const val = 2;
+        let currentStep = 0;
+        let steps = [];
+
+        function generateSteps(arr, val) {
+            const steps = [];
+            const nums = [...arr];
+            let j = 0;
+
+            // Initial state
+            steps.push({
+                array: [...nums],
+                i: -1,
+                j: j,
+                explanation: "Initial array. j starts at position 0.",
+                activeLength: j
+            });
+
+            for (let i = 0; i < nums.length; i++) {
+                // Examining current element
+                steps.push({
+                    array: [...nums],
+                    i: i,
+                    j: j,
+                    explanation: `Examining nums[${i}] = ${nums[i]}. Is it different from val (${val})?`,
+                    activeLength: j
+                });
+
+                if (nums[i] !== val) {
+                    // If element is not val, copy it to position j
+                    nums[j] = nums[i];
+
+                    steps.push({
+                        array: [...nums],
+                        i: i,
+                        j: j,
+                        explanation: `nums[${i}] = ${nums[i]} is different from ${val}. Copying it to position j=${j}.`,
+                        activeLength: j
+                    });
+
+                    j++;
+
+                    steps.push({
+                        array: [...nums],
+                        i: i,
+                        j: j,
+                        explanation: `Incrementing j to ${j}. This is our new array length.`,
+                        activeLength: j
+                    });
+                } else {
+                    steps.push({
+                        array: [...nums],
+                        i: i,
+                        j: j,
+                        explanation: `nums[${i}] = ${nums[i]} equals val (${val}). Skipping this element.`,
+                        activeLength: j
+                    });
+                }
+            }
+
+            // Final state
+            steps.push({
+                array: [...nums],
+                i: nums.length,
+                j: j,
+                explanation: `Algorithm completed! All elements equal to ${val} have been effectively removed. The new length is ${j}.`,
+                activeLength: j
+            });
+
+            return steps;
+        }
+
+        function updateVisualization() {
+            const container = document.getElementById('arrayContainer');
+            const explanation = document.getElementById('explanation');
+            const lengthDisplay = document.getElementById('currentLength');
+            const currentState = steps[currentStep];
+
+            container.innerHTML = '';
+            currentState.array.forEach((num, index) => {
+                const element = document.createElement('div');
+                element.className = `array-element ${num === val ? 'target-val' : 'keep-val'}`;
+                if (index === currentState.i) element.classList.add('current');
+                if (index >= currentState.activeLength) element.classList.add('inactive');
+                element.textContent = num;
+
+                if (index === currentState.j) {
+                    const jPointer = document.createElement('div');
+                    jPointer.className = 'j-pointer';
+                    jPointer.textContent = 'j';
+                    element.appendChild(jPointer);
+                }
+
+                if (index === currentState.i) {
+                    const iPointer = document.createElement('div');
+                    iPointer.className = 'i-pointer';
+                    iPointer.textContent = 'i';
+                    element.appendChild(iPointer);
+                }
+
+                container.appendChild(element);
+            });
+
+            explanation.textContent = currentState.explanation;
+            lengthDisplay.textContent = currentState.activeLength;
+
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+        }
+
+        function next() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateVisualization();
+            }
+        }
+
+        function prev() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateVisualization();
+            }
+        }
+
+        function reset() {
+            currentStep = 0;
+            updateVisualization();
+        }
+
+        // Initialize
+        steps = generateSteps(initialArray, val);
+        document.getElementById('nextBtn').addEventListener('click', next);
+        document.getElementById('prevBtn').addEventListener('click', prev);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        updateVisualization();
+    </script>
+</body>
+
+</html>

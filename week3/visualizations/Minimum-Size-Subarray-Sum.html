@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin: 40px 0;
+            gap: 10px;
+            position: relative;
+            padding: 20px;
+        }
+
+        .array-element {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #333;
+            border-radius: 5px;
+            font-size: 20px;
+            position: relative;
+            background-color: white;
+            z-index: 1;
+        }
+
+        .window {
+            position: absolute;
+            height: 54px;
+            background-color: rgba(144, 238, 144, 0.3);
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            z-index: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .l-pointer,
+        .r-pointer {
+            position: absolute;
+            font-weight: bold;
+            font-size: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .l-pointer {
+            bottom: -25px;
+            color: blue;
+        }
+
+        .r-pointer {
+            top: -25px;
+            color: red;
+        }
+
+        .current-sum {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .explanation {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            line-height: 1.4;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .optimal {
+            background-color: rgba(255, 215, 0, 0.3);
+            border: 2px solid #FFD700;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Minimum Size Subarray Sum Visualization</h1>
+        <div class="status">
+            <div class="status-item">
+                <span>Target Sum:</span>
+                <strong>7</strong>
+            </div>
+            <div class="status-item">
+                <span>Current Best Length:</span>
+                <strong id="bestLength">-</strong>
+            </div>
+        </div>
+        <div class="array-container" id="arrayContainer">
+            <div class="current-sum" id="currentSum"></div>
+        </div>
+        <div class="controls">
+            <button id="prevBtn" disabled>Previous</button>
+            <button id="nextBtn">Next</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        <div class="explanation" id="explanation"></div>
+    </div>
+
+    <script>
+        const nums = [2, 3, 1, 2, 4, 3];
+        const target = 7;
+        let currentStep = 0;
+        let steps = [];
+
+        function generateSteps() {
+            const steps = [];
+            let l = 0;
+            let acc = 0;
+            let ans = nums.length;
+            let foundValid = false;
+
+            // Initial state
+            steps.push({
+                l: l,
+                r: -1,
+                acc: acc,
+                ans: null,
+                explanation: "Starting with left pointer (l) at index 0 and right pointer (r) at index -1.",
+                optimal: false
+            });
+
+            for (let r = 0; r < nums.length; r++) {
+                acc += nums[r];
+                steps.push({
+                    l: l,
+                    r: r,
+                    acc: acc,
+                    ans: null,
+                    explanation: `Added nums[${r}] = ${nums[r]} to the window. Current sum = ${acc}`,
+                    optimal: false
+                });
+
+                while (acc - nums[l] >= target) {
+                    steps.push({
+                        l: l,
+                        r: r,
+                        acc: acc,
+                        ans: null,
+                        explanation: `Sum ${acc} - nums[${l}] (${nums[l]}) = ${acc - nums[l]} ≥ ${target}, can try shrinking window`,
+                        optimal: false
+                    });
+                    acc -= nums[l];
+                    l++;
+                    steps.push({
+                        l: l,
+                        r: r,
+                        acc: acc,
+                        ans: null,
+                        explanation: `Removed nums[${l - 1}] = ${nums[l - 1]} from window and moved left pointer. New sum = ${acc}`,
+                        optimal: false
+                    });
+                }
+
+                if (acc >= target) {
+                    foundValid = true;
+                    const newLen = r - l + 1;
+                    if (newLen <= ans) {
+                        ans = newLen;
+                        steps.push({
+                            l: l,
+                            r: r,
+                            acc: acc,
+                            ans: ans,
+                            explanation: `Found new minimum length subarray! Sum = ${acc} ≥ ${target} with length ${ans}`,
+                            optimal: true
+                        });
+                    }
+                }
+            }
+
+            if (!foundValid) {
+                steps.push({
+                    l: l,
+                    r: nums.length - 1,
+                    acc: acc,
+                    ans: 0,
+                    explanation: "No subarray found with sum ≥ " + target,
+                    optimal: false
+                });
+            }
+
+            return steps;
+        }
+
+        function updateVisualization() {
+            const container = document.getElementById('arrayContainer');
+            const explanation = document.getElementById('explanation');
+            const bestLength = document.getElementById('bestLength');
+            const currentState = steps[currentStep];
+
+            // Clear previous content
+            container.innerHTML = '';
+
+            // Add current sum
+            const sumDiv = document.createElement('div');
+            sumDiv.className = 'current-sum';
+            sumDiv.textContent = `Current Sum: ${currentState.acc}`;
+            container.appendChild(sumDiv);
+
+
+
+            // Create array elements
+            nums.forEach((num, index) => {
+                const element = document.createElement('div');
+                element.className = 'array-element';
+                element.textContent = num;
+
+                if (index === currentState.l) {
+                    const lPointer = document.createElement('div');
+                    lPointer.className = 'l-pointer';
+                    lPointer.textContent = 'l';
+                    element.appendChild(lPointer);
+                }
+
+                if (index === currentState.r) {
+                    const rPointer = document.createElement('div');
+                    rPointer.className = 'r-pointer';
+                    rPointer.textContent = 'r';
+                    element.appendChild(rPointer);
+                }
+
+                container.appendChild(element);
+            });
+
+            // Create window if needed
+            if (currentState.r >= 0) {
+                const window = document.createElement('div');
+                window.className = `window ${currentState.optimal ? 'optimal' : ''}`;
+                const elementWidth = 54; // 50px + 4px border
+                const gap = 10;
+                const containerRect = container.getBoundingClientRect();
+                const firstElement = container.querySelector('.array-element');
+                const firstElementRect = firstElement.getBoundingClientRect();
+                const offsetLeft = firstElementRect.left - containerRect.left;
+
+                window.style.left = `${offsetLeft - 2 + currentState.l * (elementWidth + gap)}px`;
+                window.style.width = `${(currentState.r - currentState.l + 1) * (elementWidth + gap) - gap}px`;
+                container.appendChild(window);
+            }
+
+            explanation.textContent = currentState.explanation;
+            bestLength.textContent = currentState.ans !== null ? currentState.ans : '-';
+
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+        }
+
+        function next() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateVisualization();
+            }
+        }
+
+        function prev() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateVisualization();
+            }
+        }
+
+        function reset() {
+            currentStep = 0;
+            updateVisualization();
+        }
+
+        // Initialize
+        steps = generateSteps();
+        document.getElementById('nextBtn').addEventListener('click', next);
+        document.getElementById('prevBtn').addEventListener('click', prev);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        updateVisualization();
+    </script>
+</body>
+
+</html>

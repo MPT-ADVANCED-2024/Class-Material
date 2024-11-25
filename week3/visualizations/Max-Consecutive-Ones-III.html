@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin: 40px 0;
+            gap: 10px;
+            position: relative;
+            padding: 20px;
+        }
+
+        .array-element {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #333;
+            border-radius: 5px;
+            font-size: 18px;
+            position: relative;
+            background-color: white;
+            z-index: 1;
+        }
+
+        .zero {
+            background-color: #FFB6C1;
+        }
+
+        .one {
+            background-color: #90EE90;
+        }
+
+        .replaced {
+            background-color: #FFD700;
+        }
+
+        .window {
+            position: absolute;
+            height: 44px;
+            background-color: rgba(135, 206, 235, 0.3);
+            border: 2px solid #4169E1;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            z-index: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .optimal {
+            border: 2px solid #FFD700;
+            background-color: rgba(255, 215, 0, 0.2);
+        }
+
+        .l-pointer,
+        .r-pointer {
+            position: absolute;
+            font-weight: bold;
+            font-size: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .l-pointer {
+            bottom: -25px;
+            color: blue;
+        }
+
+        .r-pointer {
+            top: -25px;
+            color: red;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .explanation {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            line-height: 1.4;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Longest Ones After Replacement Visualization</h1>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #90EE90;"></div>
+                <span>One</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFB6C1;"></div>
+                <span>Zero</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFD700;"></div>
+                <span>Replaced Zero</span>
+            </div>
+        </div>
+
+        <div class="status">
+            <div class="status-item">
+                <span>Max Zeros Allowed (k):</span>
+                <strong>3</strong>
+            </div>
+            <div class="status-item">
+                <span>Current Zeros in Window:</span>
+                <strong id="currentZeros">0</strong>
+            </div>
+            <div class="status-item">
+                <span>Current Length:</span>
+                <strong id="currentLength">0</strong>
+            </div>
+            <div class="status-item">
+                <span>Best Length:</span>
+                <strong id="bestLength">0</strong>
+            </div>
+        </div>
+
+        <div class="array-container" id="arrayContainer"></div>
+
+        <div class="controls">
+            <button id="prevBtn" disabled>Previous</button>
+            <button id="nextBtn">Next</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="explanation" id="explanation"></div>
+    </div>
+
+    <script>
+        const nums = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1];
+        const k = 3;
+        let currentStep = 0;
+        let steps = [];
+
+        function generateSteps() {
+            const steps = [];
+            let ans = 0;
+            let cnt_zero = 0;
+            let l = 0;
+
+            // Initial state
+            steps.push({
+                l: 0,
+                r: -1,
+                cnt_zero: 0,
+                ans: 0,
+                explanation: "Starting with left pointer (l) at index 0 and right pointer (r) at index -1.",
+                optimal: false
+            });
+
+            for (let r = 0; r < nums.length; r++) {
+                if (nums[r] === 0) {
+                    cnt_zero++;
+                }
+
+                steps.push({
+                    l,
+                    r,
+                    cnt_zero,
+                    ans,
+                    explanation: nums[r] === 0
+                        ? `Added nums[${r}] = 0. Zero count increased to ${cnt_zero}`
+                        : `Added nums[${r}] = 1`,
+                    optimal: false
+                });
+
+                while (cnt_zero > k) {
+                    steps.push({
+                        l,
+                        r,
+                        cnt_zero,
+                        ans,
+                        explanation: `Too many zeros (${cnt_zero} > ${k}). Need to shrink window.`,
+                        optimal: false
+                    });
+
+                    if (nums[l] === 0) {
+                        cnt_zero--;
+                    }
+                    l++;
+
+                    steps.push({
+                        l,
+                        r,
+                        cnt_zero,
+                        ans,
+                        explanation: nums[l - 1] === 0
+                            ? `Removed nums[${l - 1}] = 0. Zero count decreased to ${cnt_zero}`
+                            : `Removed nums[${l - 1}] = 1`,
+                        optimal: false
+                    });
+                }
+
+                const currentLength = r - l + 1;
+                if (currentLength > ans) {
+                    ans = currentLength;
+                    steps.push({
+                        l,
+                        r,
+                        cnt_zero,
+                        ans,
+                        explanation: `New longest valid window found! Length = ${ans}`,
+                        optimal: true
+                    });
+                }
+            }
+
+            return steps;
+        }
+
+        function updateVisualization() {
+            const container = document.getElementById('arrayContainer');
+            const explanation = document.getElementById('explanation');
+            const currentState = steps[currentStep];
+
+            // Update status
+            document.getElementById('currentZeros').textContent = currentState.cnt_zero;
+            document.getElementById('currentLength').textContent =
+                currentState.r >= 0 ? currentState.r - currentState.l + 1 : 0;
+            document.getElementById('bestLength').textContent = currentState.ans;
+
+            // Clear previous content
+            container.innerHTML = '';
+
+            // Create window if needed
+            if (currentState.r >= 0) {
+                const window = document.createElement('div');
+                window.className = `window ${currentState.optimal ? 'optimal' : ''}`;
+                const elementWidth = 44; // 40px + 4px border
+                const gap = 10;
+                const containerRect = container.getBoundingClientRect();
+
+                // Add elements first so we can measure them
+                nums.forEach((num, index) => {
+                    const element = document.createElement('div');
+                    element.className = `array-element ${num === 1 ? 'one' : 'zero'}`;
+                    element.textContent = num;
+                    container.appendChild(element);
+                });
+
+                const firstElement = container.querySelector('.array-element');
+                const firstElementRect = firstElement.getBoundingClientRect();
+                const offsetLeft = firstElementRect.left - containerRect.left;
+
+                window.style.left = `${offsetLeft - 2 + currentState.l * (elementWidth + gap)}px`;
+                window.style.width = `${(currentState.r - currentState.l + 1) * (elementWidth + gap) - gap}px`;
+                container.appendChild(window);
+
+                // Add pointers and update element classes
+                container.innerHTML = '';
+                nums.forEach((num, index) => {
+                    const element = document.createElement('div');
+                    let className = `array-element ${num === 1 ? 'one' : 'zero'}`;
+
+                    // Mark replaced zeros in the current window
+                    if (num === 0 && index >= currentState.l && index <= currentState.r &&
+                        currentState.cnt_zero <= k) {
+                        className = 'array-element replaced';
+                    }
+
+                    element.className = className;
+                    element.textContent = num;
+
+                    if (index === currentState.l) {
+                        const lPointer = document.createElement('div');
+                        lPointer.className = 'l-pointer';
+                        lPointer.textContent = 'l';
+                        element.appendChild(lPointer);
+                    }
+
+                    if (index === currentState.r) {
+                        const rPointer = document.createElement('div');
+                        rPointer.className = 'r-pointer';
+                        rPointer.textContent = 'r';
+                        element.appendChild(rPointer);
+                    }
+
+                    container.appendChild(element);
+                });
+                container.appendChild(window);
+            } else {
+                // Initial state
+                nums.forEach((num, index) => {
+                    const element = document.createElement('div');
+                    element.className = `array-element ${num === 1 ? 'one' : 'zero'}`;
+                    element.textContent = num;
+                    container.appendChild(element);
+                });
+            }
+
+            explanation.textContent = currentState.explanation;
+
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+        }
+
+        function next() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateVisualization();
+            }
+        }
+
+        function prev() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateVisualization();
+            }
+        }
+
+        function reset() {
+            currentStep = 0;
+            updateVisualization();
+        }
+
+        // Initialize
+        steps = generateSteps();
+        document.getElementById('nextBtn').addEventListener('click', next);
+        document.getElementById('prevBtn').addEventListener('click', prev);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        updateVisualization();
+    </script>
+</body>
+
+</html>

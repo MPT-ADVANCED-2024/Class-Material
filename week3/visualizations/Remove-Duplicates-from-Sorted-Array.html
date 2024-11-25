@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+
+        .array-element {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #333;
+            border-radius: 5px;
+            font-size: 20px;
+            position: relative;
+        }
+
+        .active {
+            background-color: #90EE90;
+        }
+
+        .inactive {
+            background-color: #f0f0f0;
+            color: #999;
+        }
+
+        .current {
+            border-color: #FF4500;
+            border-width: 3px;
+        }
+
+        .j-pointer {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: blue;
+            font-weight: bold;
+        }
+
+        .i-pointer {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: red;
+            font-weight: bold;
+        }
+
+        .prev-pointer {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: purple;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .explanation {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #FF4500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Remove Duplicates from Sorted Array</h1>
+        <p>This visualization shows how the algorithm removes duplicates in-place and returns the length of the unique
+            elements section.</p>
+        <div class="array-container" id="arrayContainer"></div>
+        <div class="controls">
+            <button id="prevBtn" disabled>Previous</button>
+            <button id="nextBtn">Next</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        <div class="explanation" id="explanation"></div>
+    </div>
+
+    <script>
+        const initialArray = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4];
+        let currentStep = 0;
+        let steps = [];
+
+        function generateSteps(arr) {
+            const steps = [];
+            const nums = [...arr];
+            let j = 1;
+
+            // Initial state
+            steps.push({
+                array: [...nums],
+                i: -1,
+                j: j,
+                prev: -1,
+                uniqueLength: 1,
+                explanation: "Initial array. j starts at position 1. The first element is always unique.",
+                activeIndices: [0]
+            });
+
+            for (let i = 1; i < nums.length; i++) {
+                // Checking step
+                steps.push({
+                    array: [...nums],
+                    i: i,
+                    j: j,
+                    prev: i - 1,
+                    uniqueLength: j,
+                    explanation: `Comparing nums[${i}] = ${nums[i]} with nums[${i - 1}] = ${nums[i - 1]}...`,
+                    activeIndices: Array.from({ length: j }, (_, index) => index)
+                });
+
+                if (nums[i] !== nums[i - 1]) {
+                    steps.push({
+                        array: [...nums],
+                        i: i,
+                        j: j,
+                        prev: i - 1,
+                        uniqueLength: j,
+                        explanation: `Found a new unique number ${nums[i]}! Copying it to position j=${j}`,
+                        activeIndices: Array.from({ length: j }, (_, index) => index)
+                    });
+
+                    nums[j] = nums[i];
+
+                    steps.push({
+                        array: [...nums],
+                        i: i,
+                        j: j,
+                        prev: i - 1,
+                        uniqueLength: j + 1,
+                        explanation: `Copied ${nums[i]} to position ${j}. Incrementing j.`,
+                        activeIndices: Array.from({ length: j + 1 }, (_, index) => index)
+                    });
+
+                    j++;
+                }
+            }
+
+            // Final state
+            steps.push({
+                array: [...nums],
+                i: nums.length,
+                j: j,
+                prev: nums.length - 1,
+                uniqueLength: j,
+                explanation: `Algorithm completed! The first ${j} elements are unique. Return value = ${j}`,
+                activeIndices: Array.from({ length: j }, (_, index) => index)
+            });
+
+            return steps;
+        }
+
+        function updateVisualization() {
+            const container = document.getElementById('arrayContainer');
+            const explanation = document.getElementById('explanation');
+            const currentState = steps[currentStep];
+
+            container.innerHTML = '';
+            currentState.array.forEach((num, index) => {
+                const element = document.createElement('div');
+                element.className = `array-element ${currentState.activeIndices.includes(index) ? 'active' : 'inactive'}`;
+                if (index === currentState.i) element.classList.add('current');
+                element.textContent = num;
+
+                if (index === currentState.j) {
+                    const jPointer = document.createElement('div');
+                    jPointer.className = 'j-pointer';
+                    jPointer.textContent = 'j';
+                    element.appendChild(jPointer);
+                }
+
+                if (index === currentState.i) {
+                    const iPointer = document.createElement('div');
+                    iPointer.className = 'i-pointer';
+                    iPointer.textContent = 'i';
+                    element.appendChild(iPointer);
+                }
+
+                if (index === currentState.prev && currentState.prev >= 0) {
+                    const prevPointer = document.createElement('div');
+                    prevPointer.className = 'prev-pointer';
+                    prevPointer.textContent = 'i-1';
+                    element.appendChild(prevPointer);
+                }
+
+                container.appendChild(element);
+            });
+
+            explanation.textContent = currentState.explanation;
+
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+        }
+
+        function next() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateVisualization();
+            }
+        }
+
+        function prev() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateVisualization();
+            }
+        }
+
+        function reset() {
+            currentStep = 0;
+            updateVisualization();
+        }
+
+        // Initialize
+        steps = generateSteps(initialArray);
+        document.getElementById('nextBtn').addEventListener('click', next);
+        document.getElementById('prevBtn').addEventListener('click', prev);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        updateVisualization();
+    </script>
+</body>
+
+</html>
